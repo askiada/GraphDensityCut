@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+	"math"
 	"math/rand"
 	"testing"
 
@@ -16,6 +18,83 @@ func AddEdge(gr []*model.Node, from, to int) []*model.Node {
 	gr[fromIdx].Neighbors = append(gr[fromIdx].Neighbors, &model.Edge{To: toIdx, Weight: 1})
 	gr[toIdx].Neighbors = append(gr[toIdx].Neighbors, &model.Edge{To: fromIdx, Weight: 1})
 	return gr
+}
+
+func (suite *DcutTestSuite) TestGraphOneNodeNoEdge() {
+	G := make([]*model.Node, 1)
+	G[0] = &model.Node{Value: 0}
+
+	err := suite.sesh.DensityConnectedTree(G, nil)
+	assert.Nil(suite.T(), err)
+	minFrom, minTo, minDcut := suite.sesh.Dcut()
+	assert.Equal(suite.T(), -1, minFrom)
+	assert.Equal(suite.T(), -1, minTo)
+	assert.Equal(suite.T(), math.Inf(1), minDcut)
+}
+func (suite *DcutTestSuite) TestGraphOneNodeOneEdge() {
+	G := make([]*model.Node, 1)
+	G[0] = &model.Node{Value: 0}
+	G[0].Neighbors = append(G[0].Neighbors, &model.Edge{To: 5, Weight: 1})
+	err := suite.sesh.DensityConnectedTree(G, nil)
+	assert.Nil(suite.T(), err)
+
+	minFrom, minTo, minDcut := suite.sesh.Dcut()
+	assert.Equal(suite.T(), -1, minFrom)
+	assert.Equal(suite.T(), -1, minTo)
+	assert.Equal(suite.T(), math.Inf(1), minDcut)
+}
+
+func (suite *DcutTestSuite) TestGraphTwoNodesOneValidEdge() {
+	G := GenerateGraph(2, 1)
+	err := suite.sesh.DensityConnectedTree(G, nil)
+	assert.Nil(suite.T(), err)
+	minFrom, minTo, minDcut := suite.sesh.Dcut()
+	assert.Equal(suite.T(), 1, minFrom)
+	assert.Equal(suite.T(), 0, minTo)
+	assert.Equal(suite.T(), 0.8306733524230347, minDcut)
+}
+
+func (suite *DcutTestSuite) TestGraphTwoNodesOneInvalidEdge() {
+	G := make([]*model.Node, 2)
+	G[0] = &model.Node{Value: 0}
+	G[1] = &model.Node{Value: 1}
+	G[0].Neighbors = append(G[0].Neighbors, &model.Edge{To: 5, Weight: 1})
+	err := suite.sesh.DensityConnectedTree(G, nil)
+	assert.Error(suite.T(), err)
+}
+
+func (suite *DcutTestSuite) TestGraphTwoNodesNoEdge() {
+	G := make([]*model.Node, 2)
+	G[0] = &model.Node{Value: 0}
+	G[1] = &model.Node{Value: 1}
+	err := suite.sesh.DensityConnectedTree(G, nil)
+	assert.Error(suite.T(), err)
+}
+
+func (suite *DcutTestSuite) TestGraph6Nodes5Edges() {
+	//1-----2-----4----6      1-----2     4----6
+	//      |     |       =>        |     |
+	//      3     5                 3     5
+	G := make([]*model.Node, 6)
+	G[0] = &model.Node{Value: 0}
+	G[1] = &model.Node{Value: 1}
+	G[2] = &model.Node{Value: 2}
+	G[3] = &model.Node{Value: 3}
+	G[4] = &model.Node{Value: 4}
+	G[5] = &model.Node{Value: 5}
+
+	AddEdge(G, 1, 2)
+	AddEdge(G, 2, 3)
+	AddEdge(G, 2, 4)
+	AddEdge(G, 4, 5)
+	AddEdge(G, 4, 6)
+	err := suite.sesh.DensityConnectedTree(G, nil)
+	assert.Nil(suite.T(), err)
+	fmt.Println(suite.sesh.T)
+	minFrom, minTo, minDcut := suite.sesh.Dcut()
+	assert.Equal(suite.T(), 1, minFrom)
+	assert.Equal(suite.T(), 3, minTo)
+	assert.Equal(suite.T(), 0.16666666666666666, minDcut)
 }
 
 func CreateZacharyKarateClub() []*model.Node {
@@ -121,13 +200,14 @@ func (suite *DcutTestSuite) SetupSuite() {
 
 func (suite *DcutTestSuite) SetupTest() {
 	suite.sesh = &Session{}
-	suite.G = CreateZacharyKarateClub()
+
 }
 
 func (suite *DcutTestSuite) TestZacharyGraph() {
 	first := 7
-	suite.sesh.DensityConnectedTree(suite.G, &first)
-
+	G := CreateZacharyKarateClub()
+	err := suite.sesh.DensityConnectedTree(G, &first)
+	assert.Nil(suite.T(), err)
 	/*fmt.Println("T contains:", len(suite.sesh.T))
 	for _, node := range suite.sesh.T {
 		if node.Connect != nil {
@@ -147,7 +227,8 @@ func (suite *DcutTestSuite) TestZacharyGraph() {
 func (suite *DcutTestSuite) TestRandomGraph() {
 	first := 4
 	gra := GenerateGraph(300, 1000)
-	T := suite.sesh.DensityConnectedTree(gra, &first)
+	err := suite.sesh.DensityConnectedTree(gra, &first)
+	assert.Nil(suite.T(), err)
 	fmt.Println("T contains:", len(T))
 	for _, node := range T {
 		if node.Connect != nil {
