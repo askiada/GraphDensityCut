@@ -14,7 +14,8 @@ type Edge struct {
 }
 
 func (e *Edge) String() string {
-	return "To: " + strconv.Itoa(e.To+1) + " Weight: " + strconv.FormatFloat(e.Weight, 'f', -1, 64)
+	return "To: " + strconv.Itoa(e.To+1) + " Weight: " + strconv.FormatFloat(e.Weight, 'f', -1, 64) + " Check:" + strconv.FormatBool(e.Check)
+
 }
 
 type Node struct {
