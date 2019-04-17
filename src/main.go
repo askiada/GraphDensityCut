@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"math"
 	"math/rand"
 
@@ -15,7 +16,7 @@ type Session struct {
 	T              []*model.Node
 }
 
-func (s *Session) DensityConnectedTree(g []*model.Node, first *int) {
+func (s *Session) DensityConnectedTree(g []*model.Node, first *int) error {
 	//s.DCTCount = make(map[int]int)
 	s.DCTEdges = make(map[int][]*model.Edge)
 	gSize := len(g)
@@ -35,6 +36,7 @@ func (s *Session) DensityConnectedTree(g []*model.Node, first *int) {
 	//T.insert(u);
 	metric.Init(len(g))
 	T = append(T, g[*first])
+
 	for true {
 		//maxv = −1; p = null; q = null;
 		maxv := float64(-1)
@@ -46,16 +48,24 @@ func (s *Session) DensityConnectedTree(g []*model.Node, first *int) {
 		//for j = 1 to Γ(u).size do
 		for i := range T {
 			u := T[i]
+			if len(u.Neighbors) == 0 {
+				return fmt.Errorf("Node with index %s does not have any neighbors", u)
+			}
 			for j := range u.Neighbors {
 				//v = Γ(u).get(j);
 				vEdge := u.Neighbors[j]
+				if vEdge.To >= len(g) {
+					return fmt.Errorf("Node with index %d does not exist", vEdge.To)
+				}
 				v := g[vEdge.To]
 				//if v.checked == false then
 				if !v.Checked {
 					//If we have already computed the NodeSimilarity for an edge, we can use the score from the previous computation
 					if vEdge.NodeSimilarity == nil {
+
 						tmp := metric.NodeSim(u, v, vEdge.Weight)
 						vEdge.NodeSimilarity = &tmp
+						fmt.Println(u.Value+1, v.Value+1, tmp)
 					}
 					//if s(u, v) > maxv then
 					if *vEdge.NodeSimilarity > maxv {
@@ -63,6 +73,7 @@ func (s *Session) DensityConnectedTree(g []*model.Node, first *int) {
 						p = v
 						q = u
 					}
+					//fmt.Println(maxv)
 				}
 			}
 		}
@@ -73,12 +84,11 @@ func (s *Session) DensityConnectedTree(g []*model.Node, first *int) {
 		//Check is true, because we want to only check the Dcut bi-partition for one of the edge.
 		s.DCTEdges[p.Value] = append(s.DCTEdges[p.Value], &model.Edge{To: q.Value, Weight: maxv, Check: true})
 		s.DCTEdges[q.Value] = append(s.DCTEdges[q.Value], &model.Edge{To: p.Value, Weight: maxv})
-
 		//T.insert(p);
 		T = append(T, p)
 	}
 	s.T = T
-	//return T
+	return nil
 }
 
 func (s *Session) explore(node int, exclude int) int {
@@ -117,7 +127,6 @@ func (s *Session) Dcut() (int, int, float64) {
 	minDcut := math.Inf(1)
 	minFrom := -1
 	minTo := -1
-
 	//For each edge in the Density Connected Tree, we evaluate the score of the two partitions defined after removing that edge
 	dcut := float64(0)
 	for node, edges := range s.DCTEdges {
