@@ -45,6 +45,10 @@ func countIntersect(a *model.Node, b *model.Node) float64 {
 
 func JaccardCoeff(a *model.Node, b *model.Node) float64 {
 	inter := countIntersect(a, b)
-	coeff := inter / (float64(len(a.Neighbors)+len(b.Neighbors)) - inter)
+	union := float64(len(a.Neighbors)+len(b.Neighbors)) - inter
+	if union == 0 {
+		return 1
+	}
+	coeff := inter / union
 	return coeff
 }
