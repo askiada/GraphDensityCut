@@ -1,11 +1,11 @@
 package main
 
 import (
-	"fmt"
 	"math/rand"
 	"testing"
 
-	"github.com/askiada/Dcut/src/model"
+	"github.com/askiada/GraphDensityCut/src/model"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -110,8 +110,9 @@ func CreateZacharyKarateClub() []*model.Node {
 
 type DcutTestSuite struct {
 	suite.Suite
-	G    []*model.Node
-	sesh *Session
+	G           []*model.Node
+	sesh        *Session
+	benchGraphs map[int]map[int][]*model.Node
 }
 
 func (suite *DcutTestSuite) SetupSuite() {
@@ -125,14 +126,34 @@ func (suite *DcutTestSuite) SetupTest() {
 
 func (suite *DcutTestSuite) TestZacharyGraph() {
 	first := 7
-	T := suite.sesh.DensityConnectedTree(suite.G, &first)
+	suite.sesh.DensityConnectedTree(suite.G, &first)
 
+	/*fmt.Println("T contains:", len(suite.sesh.T))
+	for _, node := range suite.sesh.T {
+		if node.Connect != nil {
+			fmt.Println(node.Value+1, "-->", node.Connect.Value+1, node.Density, len(suite.sesh.DCTEdges[node.Value]))
+		} else {
+			fmt.Println(node.Value+1, "-->", "nil", node.Density, len(suite.sesh.DCTEdges[node.Value]))
+		}
+	}*/
+	minFrom, minTo, minDcut := suite.sesh.Dcut()
+	assert.Equal(suite.T(), 8, minFrom)
+	assert.Equal(suite.T(), 2, minTo)
+	assert.Equal(suite.T(), 0.021390374331550804, minDcut)
+	//fmt.Println("Score", minFrom+1, minTo+1, minDcut)
+}
+
+/*
+func (suite *DcutTestSuite) TestRandomGraph() {
+	first := 4
+	gra := GenerateGraph(300, 1000)
+	T := suite.sesh.DensityConnectedTree(gra, &first)
 	fmt.Println("T contains:", len(T))
 	for _, node := range T {
 		if node.Connect != nil {
-			fmt.Println(node.Value+1, "-->", node.Connect.Value+1, node.Density, suite.sesh.DCTCount[node.Value])
+			fmt.Println(node.Value+1, "-->", node.Connect.Value+1, node.Density, len(suite.sesh.DCTEdges[node.Value]))
 		} else {
-			fmt.Println(node.Value+1, "-->", "nil", suite.sesh.DCTCount[node.Value])
+			fmt.Println(node.Value+1, "-->", "nil", len(suite.sesh.DCTEdges[node.Value]))
 		}
 
 		//fmt.Println("Connect:", node.Connect)
@@ -140,17 +161,7 @@ func (suite *DcutTestSuite) TestZacharyGraph() {
 	minFrom, minTo, minDcut := suite.sesh.Dcut()
 	fmt.Println("Score", minFrom+1, minTo+1, minDcut)
 }
-
-func BenchmarkZachary(b *testing.B) {
-
-	for i := 0; i < b.N; i++ {
-		G := CreateZacharyKarateClub()
-		sesh := &Session{}
-		first := 7
-		sesh.DensityConnectedTree(G, &first)
-		//sesh.Dcut()
-	}
-}
+*/
 
 func TestDcutTestSuite(t *testing.T) {
 	suite.Run(t, new(DcutTestSuite))
