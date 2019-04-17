@@ -3,9 +3,14 @@ package model
 import "strconv"
 
 type Edge struct {
-	To     int
+	//Index of the nide in the graph
+	To int
+	//Weight of the edge
 	Weight float64
-	Check  bool
+	//If set to true, the Dcut will explore that edge (useful whith undirected graphs)
+	Check bool
+	//Store the value of the NodeSimilarity between the start and the end of the edge
+	NodeSimilarity *float64
 }
 
 func (e *Edge) String() string {
@@ -21,7 +26,7 @@ type Node struct {
 }
 
 func (n *Node) String() string {
-	neigh := "\n"
+	neigh := "\n Checked: " + strconv.FormatBool(n.Checked)
 
 	for _, e := range n.Neighbors {
 		neigh += "\t " + e.String() + "\n"

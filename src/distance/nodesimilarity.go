@@ -1,6 +1,6 @@
 package metric
 
-import "github.com/askiada/Dcut/src/model"
+import "github.com/askiada/GraphDensityCut/src/model"
 
 //Definition 4
 //s(u, v) = ρ(u, v) ∗ w(u, v)
