@@ -1,23 +1,41 @@
 package metric
 
-import "github.com/askiada/Dcut/src/model"
+import (
+	"github.com/askiada/GraphDensityCut/src/model"
+)
+
+var hashMapNeighStorage map[int]map[int]bool
+var jaccMapResults map[int]map[int]float64
+
+func Init(size int) {
+	hashMapNeighStorage = make(map[int]map[int]bool, size)
+}
 
 //O(len(a)+len(b) * x) where x is a factor of hash function efficiency (between 1 and 2)
-func countIntersect(a []*model.Edge, b []*model.Edge) float64 {
-	count := float64(0)
-	hashA := make(map[int]bool)
+func countIntersect(a *model.Node, b *model.Node) float64 {
+	var hashA map[int]bool
+	//Γ(u) = {v ∈ V |{u, v} ∈ E} ∪ {u}
+	//It means that {u,v} c Γ(u) ∩ Γ(v)
+	count := float64(2)
 
-	// len(a)
-	for _, va := range a {
-		hashA[va.To] = true
+	if _, ok := hashMapNeighStorage[a.Value]; !ok {
+		hashA = make(map[int]bool)
+
+		// len(a)
+		for _, va := range a.Neighbors {
+			hashA[va.To] = true
+		}
+		hashMapNeighStorage[a.Value] = hashA
+	} else {
+		hashA = hashMapNeighStorage[a.Value]
 	}
-
 	// len(b)
-	for _, vb := range b {
+	for _, vb := range b.Neighbors {
 		if _, ok := hashA[vb.To]; ok {
 			count++
 		}
 	}
+
 	return count
 }
 
@@ -26,7 +44,7 @@ func countIntersect(a []*model.Edge, b []*model.Edge) float64 {
 // |intersecrion(A,B)| / |A| + |B| - intersecrion(A,B)
 
 func JaccardCoeff(a *model.Node, b *model.Node) float64 {
-	inter := countIntersect(a.Neighbors, b.Neighbors)
+	inter := countIntersect(a, b)
 	coeff := inter / (float64(len(a.Neighbors)+len(b.Neighbors)) - inter)
 	return coeff
 }
