@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"math/rand"
+	"strconv"
 	"testing"
 
 	"github.com/askiada/GraphDensityCut/src/model"
@@ -42,7 +43,7 @@ func GenerateGraph(maxNodes int, maxEdges int) []*model.Node {
 	s := rand.Perm(maxNodes)
 	gra := make([]*model.Node, maxNodes)
 	for i, node := range s {
-		gra[node] = &model.Node{Value: node}
+		gra[node] = &model.Node{Value: strconv.Itoa(node + 1), Index: node}
 		if i > 0 {
 			if _, ok := edgeMap[s[i-1]]; !ok {
 				edgeMap[s[i-1]] = make(map[int]float64)
