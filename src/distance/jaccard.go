@@ -18,16 +18,16 @@ func countIntersect(a *model.Node, b *model.Node) float64 {
 	//It means that {u,v} c Γ(u) ∩ Γ(v)
 	count := float64(2)
 
-	if _, ok := hashMapNeighStorage[a.Value]; !ok {
+	if _, ok := hashMapNeighStorage[a.Index]; !ok {
 		hashA = make(map[int]bool)
 
 		// len(a)
 		for _, va := range a.Neighbors {
 			hashA[va.To] = true
 		}
-		hashMapNeighStorage[a.Value] = hashA
+		hashMapNeighStorage[a.Index] = hashA
 	} else {
-		hashA = hashMapNeighStorage[a.Value]
+		hashA = hashMapNeighStorage[a.Index]
 	}
 	// len(b)
 	for _, vb := range b.Neighbors {
@@ -44,8 +44,9 @@ func countIntersect(a *model.Node, b *model.Node) float64 {
 // |intersecrion(A,B)| / |A| + |B| - intersecrion(A,B)
 
 func JaccardCoeff(a *model.Node, b *model.Node) float64 {
+
 	inter := countIntersect(a, b)
-	union := float64(len(a.Neighbors)+len(b.Neighbors)) - inter
+	union := float64(len(a.Neighbors)+len(b.Neighbors)) + 2 - inter
 	if union == 0 {
 		return 1
 	}
