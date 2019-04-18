@@ -14,12 +14,13 @@ type Edge struct {
 }
 
 func (e *Edge) String() string {
-	return "To: " + strconv.Itoa(e.To+1) + " Weight: " + strconv.FormatFloat(e.Weight, 'f', -1, 64) + " Check:" + strconv.FormatBool(e.Check)
+	return "To Index: " + strconv.Itoa(e.To) + " Weight: " + strconv.FormatFloat(e.Weight, 'f', -1, 64) + " Check:" + strconv.FormatBool(e.Check)
 
 }
 
 type Node struct {
-	Value     int
+	Index     int
+	Value     string
 	Checked   bool
 	Connect   *Node
 	Density   float64
@@ -27,11 +28,11 @@ type Node struct {
 }
 
 func (n *Node) String() string {
-	neigh := "\n Checked: " + strconv.FormatBool(n.Checked)
+	neigh := "\t Checked: " + strconv.FormatBool(n.Checked) + "\n"
 
 	for _, e := range n.Neighbors {
 		neigh += "\t " + e.String() + "\n"
 	}
 
-	return "Node: " + strconv.Itoa(n.Value+1) + neigh
+	return "Node Value: " + n.Value + " Index: " + strconv.Itoa(n.Index) + neigh
 }
