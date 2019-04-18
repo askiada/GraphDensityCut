@@ -11,32 +11,36 @@ import (
 )
 
 type Session struct {
+	G              []*model.Node
 	DCTEdges       map[int][]*model.Edge
 	ExploreResults map[int]map[int]int
+	//ExploreResults map[int]map[int]*PartitionInfo
 	T              []*model.Node
+	minFrom, minTo int
+	minDcut        float64
+	id             int
 }
 
-func (s *Session) DensityConnectedTree(g []*model.Node, first *int) error {
+func (s *Session) DensityConnectedTree(G []*model.Node, first *int) error {
 	//s.DCTCount = make(map[int]int)
 	s.DCTEdges = make(map[int][]*model.Edge)
-	gSize := len(g)
+	gSize := len(G)
 	//T = null;
 	var T []*model.Node
 	//Set ∀v ∈ V as unchecked (v.checked = false); --> Zero value for boolean
 	//Randomly selected one node u ∈ V ;
 	if first == nil {
-		tmp := rand.Intn(len(g))
+		tmp := rand.Intn(len(G))
 		first = &tmp
 	}
 	//Set u.checked = true;
-	g[*first].Checked = true
+	G[*first].Checked = true
 
 	//u.connect = null, and u.density = null; --> Zero value for pointer connect. Density is equal to 0 by default, and it does not matter
 
 	//T.insert(u);
-	metric.Init(len(g))
-	T = append(T, g[*first])
-
+	metric.Init(len(G))
+	T = append(T, G[*first])
 	for true {
 		//maxv = −1; p = null; q = null;
 		maxv := float64(-1)
@@ -54,18 +58,16 @@ func (s *Session) DensityConnectedTree(g []*model.Node, first *int) error {
 			for j := range u.Neighbors {
 				//v = Γ(u).get(j);
 				vEdge := u.Neighbors[j]
-				if vEdge.To >= len(g) {
+				if vEdge.To >= len(G) {
 					return fmt.Errorf("Node with index %d does not exist", vEdge.To)
 				}
-				v := g[vEdge.To]
+				v := G[vEdge.To]
 				//if v.checked == false then
 				if !v.Checked {
 					//If we have already computed the NodeSimilarity for an edge, we can use the score from the previous computation
 					if vEdge.NodeSimilarity == nil {
-
 						tmp := metric.NodeSim(u, v, vEdge.Weight)
 						vEdge.NodeSimilarity = &tmp
-						fmt.Println(u.Value+1, v.Value+1, tmp)
 					}
 					//if s(u, v) > maxv then
 					if *vEdge.NodeSimilarity > maxv {
@@ -73,7 +75,6 @@ func (s *Session) DensityConnectedTree(g []*model.Node, first *int) error {
 						p = v
 						q = u
 					}
-					//fmt.Println(maxv)
 				}
 			}
 		}
@@ -82,11 +83,12 @@ func (s *Session) DensityConnectedTree(g []*model.Node, first *int) error {
 		p.Density = maxv
 		//After each iteration, we create a new edge in the Density Connected Tree.
 		//Check is true, because we want to only check the Dcut bi-partition for one of the edge.
-		s.DCTEdges[p.Value] = append(s.DCTEdges[p.Value], &model.Edge{To: q.Value, Weight: maxv, Check: true})
-		s.DCTEdges[q.Value] = append(s.DCTEdges[q.Value], &model.Edge{To: p.Value, Weight: maxv})
+		s.DCTEdges[p.Index] = append(s.DCTEdges[p.Index], &model.Edge{To: q.Index, Weight: maxv, Check: true})
+		s.DCTEdges[q.Index] = append(s.DCTEdges[q.Index], &model.Edge{To: p.Index, Weight: maxv})
 		//T.insert(p);
 		T = append(T, p)
 	}
+	s.G = G
 	s.T = T
 	return nil
 }
@@ -137,7 +139,7 @@ func (s *Session) Dcut() (int, int, float64) {
 				//Dcut(C1, C2) = d(C1, C2)/min(|C1|, |C2|)
 				dcut = e.Weight / float64(min(countParition, len(s.T)-countParition))
 
-				if dcut < minDcut {
+				if dcut < minDcut || (dcut == minDcut && ((node <= minFrom && e.To <= minTo) || (node <= minTo && e.To <= minFrom))) {
 					minDcut = dcut
 					minFrom = node
 					minTo = e.To
@@ -145,7 +147,64 @@ func (s *Session) Dcut() (int, int, float64) {
 			}
 		}
 	}
+
+	s.minFrom = minFrom
+	s.minTo = minTo
+	s.minDcut = minDcut
 	return minFrom, minTo, minDcut
+}
+
+func (s *Session) extractParition(partition map[int]int, node, exclude int) map[int]int {
+	partition[node] = s.id
+
+	for _, edge := range s.DCTEdges[node] {
+		if edge.To != exclude {
+			s.id++
+			partition = s.extractParition(partition, edge.To, node)
+		}
+	}
+	return partition
+}
+
+func (s *Session) CreatePartition(from, exclude int) []*model.Node {
+	paritionSize, ok := s.ExploreResults[from][exclude]
+	//include from in the partition count
+	paritionSize += 1
+	if !ok {
+		//If the count does not exsit, we can predict it
+		paritionSize = len(s.G) - (s.ExploreResults[exclude][from] + 1)
+	}
+	partition1ID := make(map[int]int, paritionSize)
+	partition1ID = s.extractParition(partition1ID, from, exclude)
+	partition1 := make([]*model.Node, paritionSize)
+
+	for node, idx := range partition1ID {
+		partition1[idx] = &model.Node{}
+		*partition1[idx] = *s.G[node]
+		partition1[idx].Checked = false
+		partition1[idx].Index = idx
+		partition1[idx].Neighbors = nil
+		newEdges := []*model.Edge{}
+		for _, e := range s.G[node].Neighbors {
+			if val, ok := partition1ID[e.To]; ok {
+				tmp := &model.Edge{}
+				*tmp = *e
+				tmp.To = val
+				tmp.NodeSimilarity = nil
+				newEdges = append(newEdges, tmp)
+			}
+		}
+		partition1[idx].Neighbors = newEdges
+	}
+	return partition1
+}
+
+func (s *Session) SplitGraph() ([]*model.Node, []*model.Node) {
+	partition1 := s.CreatePartition(s.minFrom, s.minTo)
+	//Reset index of partition
+	s.id = 0
+	partition2 := s.CreatePartition(s.minTo, s.minFrom)
+	return partition1, partition2
 }
 
 func main() {
