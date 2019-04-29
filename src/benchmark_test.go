@@ -131,3 +131,22 @@ func BenchmarkDcut(b *testing.B) {
 		}
 	}
 }
+
+func BenchmarkDcutVeryBig(b *testing.B) {
+	nodesList := []int{
+		1000,
+	}
+
+	for _, nodesCount := range nodesList {
+		edgesList := CreateEdgesCountSlice(nodesCount)
+		for i := len(edgesList) - 1; i >= 0; i-- {
+			b.Run(fmt.Sprintf("Nodes-%d:Edges%d", nodesCount, edgesList[i]), func(b *testing.B) {
+				benchmarkDcut(nodesCount, edgesList[i], b)
+			})
+		}
+	}
+}
+
+func BenchmarkDcutVeryBig2(b *testing.B) {
+	benchmarkDcut(1000, 499500, b)
+}
