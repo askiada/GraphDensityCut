@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"math"
 	"math/rand"
+	"strconv"
+	"sync"
 
 	metric "github.com/askiada/GraphDensityCut/src/distance"
 
@@ -19,6 +21,11 @@ type Session struct {
 	minFrom, minTo int
 	minDcut        float64
 	id             int
+}
+
+type Candidate struct {
+	p, q *model.Node
+	sim  float64
 }
 
 func (s *Session) DensityConnectedTree(G []*model.Node, first *int) error {
@@ -49,35 +56,65 @@ func (s *Session) DensityConnectedTree(G []*model.Node, first *int) error {
 		if len(T) >= gSize {
 			break
 		}
+		wg := &sync.WaitGroup{}
+		rChan := make(chan *Candidate)
+		go func() {
+			for {
+				if r, open := <-rChan; open {
+					if r.sim > maxv {
+						maxv = r.sim
+						p = r.p
+						q = r.q
+					}
+				} else {
+					break
+				}
+			}
+		}()
 		//for j = 1 to Γ(u).size do
 		for i := range T {
+			wg.Add(1)
 			u := T[i]
 			if len(u.Neighbors) == 0 {
 				return fmt.Errorf("Node with index %s does not have any neighbors", u)
 			}
-			for j := range u.Neighbors {
-				//v = Γ(u).get(j);
-				vEdge := u.Neighbors[j]
-				if vEdge.To >= len(G) {
-					return fmt.Errorf("Node with index %d does not exist", vEdge.To)
-				}
-				v := G[vEdge.To]
-				//if v.checked == false then
-				if !v.Checked {
-					//If we have already computed the NodeSimilarity for an edge, we can use the score from the previous computation
-					if vEdge.NodeSimilarity == nil {
-						tmp := metric.NodeSim(u, v, vEdge.Weight)
-						vEdge.NodeSimilarity = &tmp
+			go func(wg2 *sync.WaitGroup, g2 []*model.Node, u2 *model.Node) {
+				defer wg.Done()
+				wg.Add(len(u.Neighbors))
+				for j := range u2.Neighbors {
+					//v = Γ(u).get(j);
+					vEdge := u2.Neighbors[j]
+					if vEdge.To >= len(g2) {
+						panic("Node with index does not exist" + strconv.Itoa(vEdge.To))
 					}
-					//if s(u, v) > maxv then
-					if *vEdge.NodeSimilarity > maxv {
-						maxv = *vEdge.NodeSimilarity
-						p = v
-						q = u
-					}
+					go func(wg1 *sync.WaitGroup, vE *model.Edge, g1 []*model.Node, u1 *model.Node) {
+						defer wg1.Done()
+
+						v := g1[vE.To]
+						//if v.checked == false then
+						if !v.Checked {
+							//If we have already computed the NodeSimilarity for an edge, we can use the score from the previous computation
+							if vE.NodeSimilarity == nil {
+								tmp := metric.NodeSim(u1, v, vE.Weight)
+								vE.NodeSimilarity = &tmp
+							}
+							//if s(u, v) > maxv then
+							if *vE.NodeSimilarity > maxv {
+								maxv = *vE.NodeSimilarity
+								p = v
+								q = u1
+							}
+
+							c := &Candidate{p: v, q: u1, sim: *vE.NodeSimilarity}
+							rChan <- c
+
+						}
+					}(wg2, vEdge, g2, u2)
 				}
-			}
+			}(wg, G, u)
 		}
+		wg.Wait()
+		close(rChan)
 		p.Checked = true
 		p.Connect = q
 		p.Density = maxv
