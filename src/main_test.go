@@ -72,15 +72,15 @@ func (suite *DcutTestSuite) TestGraphTwoNodesOneInvalidEdge() {
 func (suite *DcutTestSuite) TestGraphTwoNodesNoEdge() {
 	G := make([]*model.Node, 2)
 	G[0] = &model.Node{Value: "1", Index: 0}
-	G[0] = &model.Node{Value: "2", Index: 1}
+	G[1] = &model.Node{Value: "2", Index: 1}
 	err := suite.sesh.DensityConnectedTree(G, nil)
 	assert.Error(suite.T(), err)
 }
 
 func (suite *DcutTestSuite) TestGraph6Nodes5Edges() {
-	//1-----2-----4----6      1-----2     4----6
-	//      |     |       =>        |     |
-	//      3     5                 3     5
+	//1-----2-----4----6      1-----2     4----6      1     2     4----6
+	//      |     |       =>        |     |                 |
+	//      3     5                 3     5                 3     5
 	G := make([]*model.Node, 6)
 	G[0] = &model.Node{Value: "1", Index: 0}
 	G[1] = &model.Node{Value: "2", Index: 1}
@@ -231,8 +231,8 @@ func (suite *DcutTestSuite) TestZacharyGraph() {
 	err := suite.sesh.DensityConnectedTree(G, &first)
 	assert.Nil(suite.T(), err)
 	minFrom, minTo, minDcut := suite.sesh.Dcut()
-	assert.Equal(suite.T(), 8, minFrom)
-	assert.Equal(suite.T(), 2, minTo)
+	assert.Equal(suite.T(), "9", G[minFrom].Value)
+	assert.Equal(suite.T(), "3", G[minTo].Value)
 	assert.Equal(suite.T(), 0.01809954751131222, minDcut)
 
 	suite.sesh.SplitGraph()
