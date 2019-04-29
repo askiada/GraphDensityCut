@@ -1,14 +1,18 @@
 package metric
 
 import (
+	"sync"
+
 	"github.com/askiada/GraphDensityCut/src/model"
 )
 
+var mm *sync.Map
 var hashMapNeighStorage map[int]map[int]bool
-var jaccMapResults map[int]map[int]float64
 
 func Init(size int) {
-	hashMapNeighStorage = make(map[int]map[int]bool, size)
+	//hashMapNeighStorage = make(map[int]map[int]bool, size)
+
+	mm = new(sync.Map)
 }
 
 //O(len(a)+len(b) * x) where x is a factor of hash function efficiency (between 1 and 2)
@@ -17,17 +21,18 @@ func countIntersect(a *model.Node, b *model.Node) float64 {
 	//Γ(u) = {v ∈ V |{u, v} ∈ E} ∪ {u}
 	//It means that {u,v} c Γ(u) ∩ Γ(v)
 	count := float64(2)
-
-	if _, ok := hashMapNeighStorage[a.Index]; !ok {
+	if val, ok := mm.Load(a.Index); !ok {
+		//if _, ok := hashMapNeighStorage[a.Index]; !ok {
 		hashA = make(map[int]bool)
 
 		// len(a)
 		for _, va := range a.Neighbors {
 			hashA[va.To] = true
 		}
-		hashMapNeighStorage[a.Index] = hashA
+		mm.Store(a.Index, hashA)
+		//hashMapNeighStorage[a.Index] = hashA
 	} else {
-		hashA = hashMapNeighStorage[a.Index]
+		hashA = val.(map[int]bool)
 	}
 	// len(b)
 	for _, vb := range b.Neighbors {
