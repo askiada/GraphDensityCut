@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/askiada/GraphDensityCut/src/model"
+	"github.com/askiada/GraphDensityCut/src/session"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 )
@@ -110,13 +111,28 @@ func (suite *DcutTestSuite) TestGraph6Nodes5Edges() {
 	assert.Equal(suite.T(), "2", p1[minTo].Value)
 	assert.Equal(suite.T(), 0.6666666666666666, minDcut)
 
+	p11, pp12 := suite.sesh.SplitGraph()
+	tmp2 := 0
+	err = suite.sesh.DensityConnectedTree(p11, &tmp2)
+	assert.Nil(suite.T(), err)
+	minFrom, minTo, minDcut = suite.sesh.Dcut()
+	assert.Equal(suite.T(), "2", p11[minFrom].Value)
+	assert.Equal(suite.T(), "3", p11[minTo].Value)
+	assert.Equal(suite.T(), 1, minDcut)
+
+	err = suite.sesh.DensityConnectedTree(pp12, &tmp2)
+	assert.Nil(suite.T(), err)
+	minFrom, minTo, minDcut = suite.sesh.Dcut()
+	assert.Equal(suite.T(), "4", pp12[minFrom].Value)
+	assert.Equal(suite.T(), "6", pp12[minTo].Value)
+	assert.Equal(suite.T(), 1, minDcut)
+
 	err = suite.sesh.DensityConnectedTree(p2, &tmp)
 	assert.Nil(suite.T(), err)
 	minFrom, minTo, minDcut = suite.sesh.Dcut()
 	assert.Equal(suite.T(), "5", p2[minFrom].Value)
 	assert.Equal(suite.T(), "4", p2[minTo].Value)
 	assert.Equal(suite.T(), 0.6666666666666666, minDcut)
-
 }
 
 func CreateZacharyKarateClub() []*model.Node {
@@ -212,7 +228,7 @@ func CreateZacharyKarateClub() []*model.Node {
 type DcutTestSuite struct {
 	suite.Suite
 	G           []*model.Node
-	sesh        *Session
+	sesh        *session.Session
 	benchGraphs map[int]map[int][]*model.Node
 }
 
@@ -221,7 +237,7 @@ func (suite *DcutTestSuite) SetupSuite() {
 }
 
 func (suite *DcutTestSuite) SetupTest() {
-	suite.sesh = &Session{}
+	suite.sesh = &session.Session{}
 
 }
 
