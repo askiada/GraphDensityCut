@@ -1,3 +1,4 @@
+//Package session defines the algorithm to find a minimum density cut in a graph
 package session
 
 import (
@@ -6,42 +7,50 @@ import (
 	"math"
 	"math/rand"
 
-	metric "github.com/askiada/GraphDensityCut/src/distance"
-	"github.com/askiada/GraphDensityCut/src/model"
+	metric "github.com/askiada/GraphDensityCut/distance"
+	"github.com/askiada/GraphDensityCut/model"
 )
 
 type Session struct {
-	G              []*model.Node
-	DCTEdges       map[int][]*model.Edge
+	//Store the nodes in the graph
+	Graph []*model.Node
+	//Representation of the density connected tree
+	DCTEdges map[int][]*model.Edge
+	//Store the cardinality of the partition when we explore the density connected tree from a starting node and excluding one edge
+	//map[FromNode][ExcludeNode]Cardinality of the partition
 	ExploreResults map[int]map[int]int
-	//ExploreResults map[int]map[int]*PartitionInfo
-	T              []*model.Node
+	//Store in order the node we are adding to the density conneted tree
+	T []*model.Node
+	//Contains the two node indexes of the edge with the smallest D-cut score
 	minFrom, minTo int
-	minDcut        float64
-	id             int
+	//Smallest D-cut score
+	minDcut float64
+	//[To rework] Index of the next node available when we build a partition
+	id int
 }
 
-func (s *Session) DensityConnectedTree(G []*model.Node, first *int) error {
+//DensityConnectedTree Create the density connected tree starting from a give node. If the first node is not provided, it randomly picks one.
+func (s *Session) DensityConnectedTree(Graph []*model.Node, first *int) error {
 	//s.DCTCount = make(map[int]int)
 	s.DCTEdges = make(map[int][]*model.Edge)
-	gSize := len(G)
+	gSize := len(Graph)
 	//T = null;
 	var T []*model.Node
 	//Set ∀v ∈ V as unchecked (v.checked = false); --> Zero value for boolean
 	//Randomly selected one node u ∈ V ;
 	if first == nil {
-		tmp := rand.Intn(len(G))
+		tmp := rand.Intn(len(Graph))
 		first = &tmp
 	}
 	//Set u.checked = true;
-	G[*first].Checked = true
+	Graph[*first].Checked = true
 
 	//u.connect = null, and u.density = null; --> Zero value for pointer connect. Density is equal to 0 by default, and it does not matter
 
 	//T.insert(u);
-	metric.Init(len(G))
-	T = append(T, G[*first])
-	for true {
+	metric.Init(len(Graph))
+	T = append(T, Graph[*first])
+	for {
 		//maxv = −1; p = null; q = null;
 		maxv := float64(-1)
 		var p, q *model.Node
@@ -58,10 +67,10 @@ func (s *Session) DensityConnectedTree(G []*model.Node, first *int) error {
 			for j := range u.Neighbors {
 				//v = Γ(u).get(j);
 				vEdge := u.Neighbors[j]
-				if vEdge.To >= len(G) {
+				if vEdge.To >= len(Graph) {
 					return fmt.Errorf("Node with index %d does not exist", vEdge.To)
 				}
-				v := G[vEdge.To]
+				v := Graph[vEdge.To]
 				//if v.checked == false then
 				if !v.Checked {
 					//If we have already computed the NodeSimilarity for an edge, we can use the score from the previous computation
@@ -88,11 +97,12 @@ func (s *Session) DensityConnectedTree(G []*model.Node, first *int) error {
 		//T.insert(p);
 		T = append(T, p)
 	}
-	s.G = G
+	s.Graph = Graph
 	s.T = T
 	return nil
 }
 
+//explore Returns the cardinality of the partition when we cut the edge between `node` and `exclude` in the density connected tree
 func (s *Session) explore(node int, exclude int) int {
 	val, ok := s.ExploreResults[node]
 
@@ -115,6 +125,7 @@ func (s *Session) explore(node int, exclude int) int {
 	return count
 }
 
+//min Returns the minimum between two integers
 func min(a, b int) int {
 	if a < b {
 		return a
@@ -122,6 +133,7 @@ func min(a, b int) int {
 	return b
 }
 
+//Dcut Performs density in a graph and returns the indexes in the graph of the endpoints of the edge with the minimim Dcut score
 func (s *Session) Dcut() (int, int, float64) {
 	//For each nodeA we want to count the number of nodes in the partition if we break the edge between nodeA and nodeB
 	//map[nodeA][nodeB]partitionSize
@@ -154,6 +166,9 @@ func (s *Session) Dcut() (int, int, float64) {
 	return minFrom, minTo, minDcut
 }
 
+//extractParition Returns a map between the indexes of the nodes in the original graph and the indexes in the partition.
+//
+//The partition is generated based on the cut of the edge between `node` and `exclude` in the density connected tree.
 func (s *Session) extractParition(partition map[int]int, node, exclude int) map[int]int {
 	partition[node] = s.id
 
@@ -166,31 +181,29 @@ func (s *Session) extractParition(partition map[int]int, node, exclude int) map[
 	return partition
 }
 
+//CreatePartition Returns a partition of a graph based on the results of a Dcut.
 func (s *Session) CreatePartition(from, exclude int) []*model.Node {
-	//log.Println(s.ExploreResults)
 	paritionSize, ok := s.ExploreResults[from][exclude]
 	//include from in the partition count
 	paritionSize += 1
 	if !ok {
 		//If the count does not exsit, we can predict it
-		paritionSize = len(s.G) - (s.ExploreResults[exclude][from] + 1)
+		paritionSize = len(s.Graph) - (s.ExploreResults[exclude][from] + 1)
 	}
 
-	log.Println("OK", paritionSize)
+	log.Printf("Partition cardinality: %d (explore graph from vertex %s and ignore edge to %s)", paritionSize, s.Graph[from].Value, s.Graph[exclude].Value)
 
 	partition1ID := make(map[int]int, paritionSize)
 	partition1ID = s.extractParition(partition1ID, from, exclude)
 	partition1 := make([]*model.Node, paritionSize)
-	log.Println("OK2", paritionSize)
-	log.Println(partition1ID)
 	for node, idx := range partition1ID {
 		partition1[idx] = &model.Node{}
-		*partition1[idx] = *s.G[node]
+		*partition1[idx] = *s.Graph[node]
 		partition1[idx].Checked = false
 		partition1[idx].Index = idx
 		partition1[idx].Neighbors = nil
 		newEdges := []*model.Edge{}
-		for _, e := range s.G[node].Neighbors {
+		for _, e := range s.Graph[node].Neighbors {
 			if val, ok := partition1ID[e.To]; ok {
 				tmp := &model.Edge{}
 				*tmp = *e
@@ -205,7 +218,7 @@ func (s *Session) CreatePartition(from, exclude int) []*model.Node {
 }
 
 func (s *Session) SplitGraph() ([]*model.Node, []*model.Node) {
-	log.Println("Split Graph", s.minFrom, s.minTo)
+	log.Println("Split Graph...")
 	s.id = 0
 	partition1 := s.CreatePartition(s.minFrom, s.minTo)
 	//Reset index of partition

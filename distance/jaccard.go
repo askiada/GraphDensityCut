@@ -1,17 +1,18 @@
+//Package metric defines all the metrics to build the density connected tree
 package metric
 
 import (
-	"github.com/askiada/GraphDensityCut/src/model"
+	"github.com/askiada/GraphDensityCut/model"
 )
 
 var hashMapNeighStorage map[int]map[int]bool
-var jaccMapResults map[int]map[int]float64
 
 func Init(size int) {
 	hashMapNeighStorage = make(map[int]map[int]bool, size)
 }
 
-//O(len(a)+len(b) * x) where x is a factor of hash function efficiency (between 1 and 2)
+//countIntersect Returns the number of common neighbors for two given nodes.
+//Complexity: O(len(a)+len(b) * x) where x is a factor of hash function efficiency (between 1 and 2)
 func countIntersect(a *model.Node, b *model.Node) float64 {
 	var hashA map[int]bool
 	//Γ(u) = {v ∈ V |{u, v} ∈ E} ∪ {u}
@@ -39,12 +40,13 @@ func countIntersect(a *model.Node, b *model.Node) float64 {
 	return count
 }
 
-//Definition 3
-//ρ(u, v) = |Γ(u) ∩ Γ(v)| / |Γ(u) ∪ Γ(v)|
-// |intersecrion(A,B)| / |A| + |B| - intersecrion(A,B)
-
+//JaccardCoeff Comput the Jaccard index based on the standard definition https://en.wikipedia.org/wiki/Jaccard_index
+//
+//Implements Definition 3
+//  ρ(u, v) = |Γ(u) ∩ Γ(v)| / |Γ(u) ∪ Γ(v)|
+//
+//  |intersecrion(A,B)| / |A| + |B| - intersecrion(A,B)
 func JaccardCoeff(a *model.Node, b *model.Node) float64 {
-
 	inter := countIntersect(a, b)
 	union := float64(len(a.Neighbors)+len(b.Neighbors)) + 2 - inter
 	if union == 0 {
