@@ -2,12 +2,11 @@ package main
 
 import (
 	"fmt"
-	"math/rand"
 	"testing"
 
-	"github.com/askiada/GraphDensityCut/src/graph"
-	"github.com/askiada/GraphDensityCut/src/model"
-	"github.com/askiada/GraphDensityCut/src/session"
+	"github.com/askiada/GraphDensityCut/graph"
+	"github.com/askiada/GraphDensityCut/model"
+	"github.com/askiada/GraphDensityCut/session"
 )
 
 func ResetG(g []*model.Node) {
@@ -17,18 +16,6 @@ func ResetG(g []*model.Node) {
 			g[i].Neighbors[j].Check = false
 		}
 	}
-}
-
-func GenerateEdge(maxNodes int, from int) *model.Edge {
-	to := 0
-	for true {
-		to = rand.Intn(maxNodes)
-		if from != to {
-			break
-		}
-	}
-	e := model.Edge{To: to, Weight: rand.Float64()}
-	return &e
 }
 
 var Result []*model.Node
@@ -41,7 +28,10 @@ func benchmarkDcut(nodes, edges int, b *testing.B) {
 		b.StopTimer()
 		ResetG(G)
 		b.StartTimer()
-		sesh.DensityConnectedTree(G, nil)
+		err := sesh.DensityConnectedTree(G, nil)
+		if err != nil {
+			panic(err)
+		}
 		sesh.Dcut()
 	}
 	Result = sesh.T

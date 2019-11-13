@@ -1,24 +1,42 @@
+//Pacakge graph defines function to generate/update a graph
 package graph
 
 import (
 	"math/rand"
 	"strconv"
 
-	"github.com/askiada/GraphDensityCut/src/model"
+	"github.com/askiada/GraphDensityCut/model"
 )
 
-type Pair struct {
+type pair struct {
 	a int
 	b int
 }
 
+//Generate Build a random graphs with maxNodes Vertices and maxEdges Edges.
+// The graph contains at least maxNodes edges to prevent isolated nodes
+// Speed is not a constraint, it has a very bad time and space complexity.
+//
+// What are you doing ?
+//
+// - Counts the number of distinct pairs of nodes
+//
+// - Creates at least one edge per node to ensure there is no isolated nodes
+//
+// - Build a list of pairs with all the remaining candidates edges
+//
+// - Add edges to the graph until we reach maxEdges
 func Generate(maxNodes int, maxEdges int) []*model.Node {
-	maxPairs := (maxNodes * (maxNodes - 1)) / 2
 
+	//Number of combinations without replacement C(maxNode,2)
+	maxPairs := (maxNodes * (maxNodes - 1)) / 2
+	//Store the remaining edged we must create to have maxEdges and assuming we create at least one edge per node
 	nonConnectedEdges := maxEdges - maxNodes
+	//Store existing edges
 	edgeMap := make(map[int]map[int]float64)
 	s := rand.Perm(maxNodes)
 	gra := make([]*model.Node, maxNodes)
+	//Build at least one edge for each node
 	for i, node := range s {
 		gra[node] = &model.Node{Value: strconv.Itoa(node + 1), Index: node}
 		if i > 0 {
@@ -36,25 +54,22 @@ func Generate(maxNodes int, maxEdges int) []*model.Node {
 		}
 	}
 
+	//Build all the remaining edges
 	remainingPairs := maxPairs - (maxNodes - 1)
-
-	pairs := make([]Pair, remainingPairs, remainingPairs)
-
+	pairs := make([]pair, remainingPairs)
 	k := 0
 	for i := 0; i < maxNodes-1; i++ {
 		for j := i + 1; j < maxNodes; j++ {
 			if _, ok := edgeMap[i][j]; !ok {
-				//fmt.Println("(i,j)", i, j)
-				pairs[k] = Pair{a: i, b: j}
+				pairs[k] = pair{a: i, b: j}
 				k++
 			}
 		}
 	}
 
 	rand.Shuffle(len(pairs), func(i, j int) { pairs[i], pairs[j] = pairs[j], pairs[i] })
-
+	//Add edges based on the remaining pairs
 	for i := 0; i < nonConnectedEdges; i++ {
-
 		p := pairs[i]
 		w := rand.Float64()
 		gra[p.a].Neighbors = append(gra[p.a].Neighbors, &model.Edge{To: p.b, Weight: w})

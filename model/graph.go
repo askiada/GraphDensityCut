@@ -1,9 +1,10 @@
+//Package model is a warehouse for all the structures to represent a graph, especially to solve the D-cut problem
 package model
 
 import "strconv"
 
 type Edge struct {
-	//Index of the nide in the graph
+	//Index of the node in the graph
 	To int
 	//Weight of the edge
 	Weight float64
@@ -19,11 +20,17 @@ func (e *Edge) String() string {
 }
 
 type Node struct {
-	Index     int
-	Value     string
-	Checked   bool
-	Connect   *Node
-	Density   float64
+	//Index of the node in the graph
+	Index int
+	//Label linked to the node
+	Value string
+	//To ensure we only access the node one time when we build the density connected tree
+	Checked bool
+	//[Deprecated] Same role as checked
+	Connect *Node
+	//[Deprecated] Same Role as Edge.NodeSimilarity
+	Density float64
+	//List of neighbors
 	Neighbors []*Edge
 }
 

@@ -3,10 +3,10 @@ package main
 import (
 	"log"
 
-	"github.com/askiada/GraphDensityCut/src/graph"
-	"github.com/askiada/GraphDensityCut/src/session"
+	"github.com/askiada/GraphDensityCut/graph"
+	"github.com/askiada/GraphDensityCut/session"
 
-	"github.com/askiada/GraphDensityCut/src/model"
+	"github.com/askiada/GraphDensityCut/model"
 )
 
 func run(sesh *session.Session, G []*model.Node, split bool) ([]*model.Node, []*model.Node) {
