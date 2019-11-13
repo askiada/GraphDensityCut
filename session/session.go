@@ -183,7 +183,6 @@ func (s *Session) extractParition(partition map[int]int, node, exclude int) map[
 
 //CreatePartition Returns a partition of a graph based on the results of a Dcut.
 func (s *Session) CreatePartition(from, exclude int) []*model.Node {
-	//log.Println(s.ExploreResults)
 	paritionSize, ok := s.ExploreResults[from][exclude]
 	//include from in the partition count
 	paritionSize += 1
@@ -192,13 +191,11 @@ func (s *Session) CreatePartition(from, exclude int) []*model.Node {
 		paritionSize = len(s.Graph) - (s.ExploreResults[exclude][from] + 1)
 	}
 
-	log.Println("OK", paritionSize)
+	log.Printf("Partition cardinality: %d (explore graph from vertex %s and ignore edge to %s)", paritionSize, s.Graph[from].Value, s.Graph[exclude].Value)
 
 	partition1ID := make(map[int]int, paritionSize)
 	partition1ID = s.extractParition(partition1ID, from, exclude)
 	partition1 := make([]*model.Node, paritionSize)
-	log.Println("OK2", paritionSize)
-	log.Println(partition1ID)
 	for node, idx := range partition1ID {
 		partition1[idx] = &model.Node{}
 		*partition1[idx] = *s.Graph[node]
@@ -221,7 +218,7 @@ func (s *Session) CreatePartition(from, exclude int) []*model.Node {
 }
 
 func (s *Session) SplitGraph() ([]*model.Node, []*model.Node) {
-	log.Println("Split Graph", s.minFrom, s.minTo)
+	log.Println("Split Graph...")
 	s.id = 0
 	partition1 := s.CreatePartition(s.minFrom, s.minTo)
 	//Reset index of partition
