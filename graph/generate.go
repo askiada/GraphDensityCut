@@ -2,6 +2,7 @@
 package graph
 
 import (
+	"log"
 	"math/rand"
 	"strconv"
 
@@ -27,7 +28,7 @@ type pair struct {
 //
 // - Add edges to the graph until we reach maxEdges
 func Generate(maxNodes int, maxEdges int) []*model.Node {
-
+	log.Printf("Generate a random graph with %d vertices and a maximum of %d edges", maxNodes, maxEdges)
 	//Number of combinations without replacement C(maxNode,2)
 	maxPairs := (maxNodes * (maxNodes - 1)) / 2
 	//Store the remaining edged we must create to have maxEdges and assuming we create at least one edge per node
