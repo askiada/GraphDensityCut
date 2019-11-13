@@ -17,3 +17,8 @@ Understanding :
 -   The original graph know contains two partitions.
 -   We repeat the same process from step 1 on each partition.
 -   We stop when we are happy
+
+
+## Documentation
+
+https://godoc.org/github.com/askiada/GraphDensityCut
