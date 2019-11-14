@@ -3,7 +3,6 @@ name: Test
 jobs:
   test:
     env:
-      GOPATH: ${{ runner.workspace }}
       GO111MODULE: on
     strategy:
       matrix:
