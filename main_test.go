@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"math"
 	"math/rand"
 	"strconv"
@@ -15,8 +14,8 @@ import (
 
 func AddEdge(gr []*model.Node, from, to int) []*model.Node {
 
-	fromIdx := from - 1
-	toIdx := to - 1
+	fromIdx := model.NodeID(from - 1)
+	toIdx := model.NodeID(to - 1)
 	gr[fromIdx].Neighbors = append(gr[fromIdx].Neighbors, &model.Edge{To: toIdx, Weight: 1})
 	gr[toIdx].Neighbors = append(gr[toIdx].Neighbors, &model.Edge{To: fromIdx, Weight: 1})
 	return gr
@@ -29,8 +28,8 @@ func (suite *DcutTestSuite) TestGraphOneNodeNoEdge() {
 	err := suite.sesh.DensityConnectedTree(G, nil)
 	assert.Nil(suite.T(), err)
 	minFrom, minTo, minDcut := suite.sesh.Dcut()
-	assert.Equal(suite.T(), -1, minFrom)
-	assert.Equal(suite.T(), -1, minTo)
+	assert.Equal(suite.T(), model.NodeID(-1), minFrom)
+	assert.Equal(suite.T(), model.NodeID(-1), minTo)
 	assert.Equal(suite.T(), math.Inf(1), minDcut)
 }
 func (suite *DcutTestSuite) TestGraphOneNodeOneEdge() {
@@ -41,8 +40,8 @@ func (suite *DcutTestSuite) TestGraphOneNodeOneEdge() {
 	assert.Nil(suite.T(), err)
 
 	minFrom, minTo, minDcut := suite.sesh.Dcut()
-	assert.Equal(suite.T(), -1, minFrom)
-	assert.Equal(suite.T(), -1, minTo)
+	assert.Equal(suite.T(), model.NodeID(-1), minFrom)
+	assert.Equal(suite.T(), model.NodeID(-1), minTo)
 	assert.Equal(suite.T(), math.Inf(1), minDcut)
 }
 
@@ -57,8 +56,8 @@ func (suite *DcutTestSuite) TestGraphTwoNodesOneValidEdge() {
 	err := suite.sesh.DensityConnectedTree(G, nil)
 	assert.Nil(suite.T(), err)
 	minFrom, minTo, minDcut := suite.sesh.Dcut()
-	assert.Equal(suite.T(), 0, minFrom)
-	assert.Equal(suite.T(), 1, minTo)
+	assert.Equal(suite.T(), model.NodeID(0), minFrom)
+	assert.Equal(suite.T(), model.NodeID(1), minTo)
 	assert.Equal(suite.T(), float64(1), minDcut)
 }
 
@@ -126,8 +125,8 @@ func (suite *DcutTestSuite) TestGraph6Nodes5Edges() {
 	err = suite.sesh.DensityConnectedTree(p11, &tmp2)
 	assert.Nil(suite.T(), err)
 	minFrom, minTo, minDcut = suite.sesh.Dcut()
-	assert.Equal(suite.T(), -1, minFrom)
-	assert.Equal(suite.T(), -1, minTo)
+	assert.Equal(suite.T(), model.NodeID(-1), minFrom)
+	assert.Equal(suite.T(), model.NodeID(-1), minTo)
 	assert.Equal(suite.T(), math.Inf(1), minDcut)
 
 	err = suite.sesh.DensityConnectedTree(p2, &tmp)
@@ -138,9 +137,6 @@ func (suite *DcutTestSuite) TestGraph6Nodes5Edges() {
 	assert.Equal(suite.T(), 0.6666666666666666, minDcut)
 
 	p21, p22 := suite.sesh.SplitGraph()
-
-	fmt.Println(p21)
-	fmt.Println(p22)
 
 	tmp2 = 0
 	err = suite.sesh.DensityConnectedTree(p22, &tmp2)
@@ -153,8 +149,8 @@ func (suite *DcutTestSuite) TestGraph6Nodes5Edges() {
 	err = suite.sesh.DensityConnectedTree(p21, &tmp2)
 	assert.Nil(suite.T(), err)
 	minFrom, minTo, minDcut = suite.sesh.Dcut()
-	assert.Equal(suite.T(), -1, minFrom)
-	assert.Equal(suite.T(), -1, minTo)
+	assert.Equal(suite.T(), model.NodeID(-1), minFrom)
+	assert.Equal(suite.T(), model.NodeID(-1), minTo)
 	assert.Equal(suite.T(), math.Inf(1), minDcut)
 }
 
@@ -163,7 +159,7 @@ func CreateZacharyKarateClub() []*model.Node {
 	graph := make([]*model.Node, 34)
 
 	for i := 0; i < 34; i++ {
-		graph[i] = &model.Node{Value: strconv.Itoa(i + 1), Index: i}
+		graph[i] = &model.Node{Value: strconv.Itoa(i + 1), Index: model.NodeID(i)}
 	}
 
 	graph = AddEdge(graph, 2, 1)

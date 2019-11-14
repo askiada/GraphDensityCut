@@ -5,22 +5,22 @@ import (
 	"github.com/askiada/GraphDensityCut/model"
 )
 
-var hashMapNeighStorage map[int]map[int]bool
+var hashMapNeighStorage map[model.NodeID]map[model.NodeID]bool
 
 func Init(size int) {
-	hashMapNeighStorage = make(map[int]map[int]bool, size)
+	hashMapNeighStorage = make(map[model.NodeID]map[model.NodeID]bool, size)
 }
 
 //countIntersect Returns the number of common neighbors for two given nodes.
 //Complexity: O(len(a)+len(b) * x) where x is a factor of hash function efficiency (between 1 and 2)
 func countIntersect(a *model.Node, b *model.Node) float64 {
-	var hashA map[int]bool
+	var hashA map[model.NodeID]bool
 	//Γ(u) = {v ∈ V |{u, v} ∈ E} ∪ {u}
 	//It means that {u,v} c Γ(u) ∩ Γ(v)
 	count := float64(2)
 
 	if _, ok := hashMapNeighStorage[a.Index]; !ok {
-		hashA = make(map[int]bool)
+		hashA = make(map[model.NodeID]bool)
 
 		// len(a)
 		for _, va := range a.Neighbors {

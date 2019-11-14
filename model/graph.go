@@ -3,9 +3,11 @@ package model
 
 import "strconv"
 
+type NodeID int
+
 type Edge struct {
 	//Index of the node in the graph
-	To int
+	To NodeID
 	//Weight of the edge
 	Weight float64
 	//If set to true, the Dcut will explore that edge (useful whith undirected graphs)
@@ -15,13 +17,13 @@ type Edge struct {
 }
 
 func (e *Edge) String() string {
-	return "To Index: " + strconv.Itoa(e.To) + " Weight: " + strconv.FormatFloat(e.Weight, 'f', -1, 64) + " Check:" + strconv.FormatBool(e.Check)
+	return "To Index: " + strconv.Itoa(int(e.To)) + " Weight: " + strconv.FormatFloat(e.Weight, 'f', -1, 64) + " Check:" + strconv.FormatBool(e.Check)
 
 }
 
 type Node struct {
 	//Index of the node in the graph
-	Index int
+	Index NodeID
 	//Label linked to the node
 	Value string
 	//To ensure we only access the node one time when we build the density connected tree
@@ -37,5 +39,5 @@ func (n *Node) String() string {
 		neigh += "\t " + e.String() + "\n"
 	}
 
-	return "Node Value: " + n.Value + " Index: " + strconv.Itoa(n.Index) + neigh
+	return "Node Value: " + n.Value + " Index: " + strconv.Itoa(int(n.Index)) + neigh
 }

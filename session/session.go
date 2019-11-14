@@ -15,25 +15,22 @@ type Session struct {
 	//Store the nodes in the graph
 	Graph []*model.Node
 	//Representation of the density connected tree
-	DCTEdges [][]*model.Edge
+	DCT []*model.Node
 	//Store the cardinality of the partition when we explore the density connected tree from a starting node and excluding one edge
 	//map[FromNode][ExcludeNode]Cardinality of the partition
-	ExploreResults map[int]map[int]int
+	ExploreResults map[model.NodeID]map[model.NodeID]int
 	//Store in order the node we are adding to the density conneted tree
 	T []*model.Node
 	//Contains the two node indexes of the edge with the smallest D-cut score
-	minFrom, minTo int
+	minFrom, minTo model.NodeID
 	//Smallest D-cut score
 	minDcut float64
-	//[To rework] Index of the next node available when we build a partition
-	id int
 }
 
 //DensityConnectedTree Create the density connected tree starting from a give node. If the first node is not provided, it randomly picks one.
 func (s *Session) DensityConnectedTree(Graph []*model.Node, first *int) error {
-	//s.DCTCount = make(map[int]int)
 	gSize := len(Graph)
-	s.DCTEdges = make([][]*model.Edge, gSize)
+	s.DCT = make([]*model.Node, gSize)
 	//T = null;
 	var T []*model.Node
 	//Set ∀v ∈ V as unchecked (v.checked = false); --> Zero value for boolean
@@ -64,12 +61,11 @@ func (s *Session) DensityConnectedTree(Graph []*model.Node, first *int) error {
 			if len(u.Neighbors) == 0 {
 				return fmt.Errorf("Node with index %s does not have any neighbors", u)
 			}
-			for j := range u.Neighbors {
-				//v = Γ(u).get(j);
-				vEdge := u.Neighbors[j]
-				if vEdge.To >= len(Graph) {
+			for _, vEdge := range u.Neighbors {
+				if int(vEdge.To) >= len(Graph) {
 					return fmt.Errorf("Node with index %d does not exist", vEdge.To)
 				}
+				//v = Γ(u).get(j);
 				v := Graph[vEdge.To]
 				//if v.checked == false then
 				if !v.Checked {
@@ -90,9 +86,22 @@ func (s *Session) DensityConnectedTree(Graph []*model.Node, first *int) error {
 		p.Checked = true
 		//After each iteration, we create a new edge in the Density Connected Tree.
 		//Check is true, because we want to only check the Dcut bi-partition for one of the edge.
-		s.DCTEdges[p.Index] = append(s.DCTEdges[p.Index], &model.Edge{To: q.Index, Weight: maxv, Check: true})
-		s.DCTEdges[q.Index] = append(s.DCTEdges[q.Index], &model.Edge{To: p.Index, Weight: maxv})
-		//T.insert(p);
+
+		if s.DCT[p.Index] == nil {
+			s.DCT[p.Index] = &model.Node{
+				Index: p.Index,
+				Value: p.Value,
+			}
+		}
+		s.DCT[p.Index].Neighbors = append(s.DCT[p.Index].Neighbors, &model.Edge{To: q.Index, Weight: maxv, Check: true})
+
+		if s.DCT[q.Index] == nil {
+			s.DCT[q.Index] = &model.Node{
+				Index: q.Index,
+				Value: q.Value,
+			}
+		}
+		s.DCT[q.Index].Neighbors = append(s.DCT[q.Index].Neighbors, &model.Edge{To: p.Index, Weight: maxv})
 		T = append(T, p)
 	}
 	s.Graph = Graph
@@ -101,11 +110,11 @@ func (s *Session) DensityConnectedTree(Graph []*model.Node, first *int) error {
 }
 
 //explore Returns the cardinality of the partition when we cut the edge between `node` and `exclude` in the density connected tree
-func (s *Session) explore(node int, exclude int) int {
+func (s *Session) explore(node model.NodeID, exclude model.NodeID) int {
 	val, ok := s.ExploreResults[node]
 
 	if !ok {
-		s.ExploreResults[node] = make(map[int]int)
+		s.ExploreResults[node] = make(map[model.NodeID]int)
 	} else {
 		if storedScore, ok2 := val[exclude]; ok2 {
 			return storedScore
@@ -113,8 +122,8 @@ func (s *Session) explore(node int, exclude int) int {
 	}
 
 	//-1 to exclude
-	count := len(s.DCTEdges[node]) - 1
-	for _, edge := range s.DCTEdges[node] {
+	count := len(s.DCT[node].Neighbors) - 1
+	for _, edge := range s.DCT[node].Neighbors {
 		if edge.To != exclude {
 			count += s.explore(edge.To, node)
 		}
@@ -132,32 +141,33 @@ func min(a, b int) int {
 }
 
 //Dcut Performs density in a graph and returns the indexes in the graph of the endpoints of the edge with the minimim Dcut score
-func (s *Session) Dcut() (int, int, float64) {
+func (s *Session) Dcut() (model.NodeID, model.NodeID, float64) {
 	//For each nodeA we want to count the number of nodes in the partition if we break the edge between nodeA and nodeB
 	//map[nodeA][nodeB]partitionSize
-	s.ExploreResults = make(map[int]map[int]int)
+	s.ExploreResults = make(map[model.NodeID]map[model.NodeID]int)
 	minDcut := math.Inf(1)
-	minFrom := -1
-	minTo := -1
-	//For each edge in the Density Connected Tree, we evaluate the score of the two partitions defined after removing that edge
-	dcut := float64(0)
-	for node, edges := range s.DCTEdges {
-		for _, e := range edges {
-			if e.Check {
-				//Count partiion should also include the node itself --> + 1
-				countParition := s.explore(node, e.To) + 1
-				//Dcut(C1, C2) = d(C1, C2)/min(|C1|, |C2|)
-				dcut = e.Weight / float64(min(countParition, len(s.T)-countParition))
+	minFrom := model.NodeID(-1)
+	minTo := model.NodeID(-1)
+	if len(s.DCT) > 1 {
+		//For each edge in the Density Connected Tree, we evaluate the score of the two partitions defined after removing that edge
+		dcut := float64(0)
+		for index, node := range s.DCT {
+			for _, e := range node.Neighbors {
+				if e.Check {
+					//Count partiion should also include the node itself --> + 1
+					countParition := s.explore(model.NodeID(index), e.To) + 1
+					//Dcut(C1, C2) = d(C1, C2)/min(|C1|, |C2|)
+					dcut = e.Weight / float64(min(countParition, len(s.T)-countParition))
 
-				if dcut < minDcut || (dcut == minDcut && ((node <= minFrom && e.To <= minTo) || (node <= minTo && e.To <= minFrom))) {
-					minDcut = dcut
-					minFrom = node
-					minTo = e.To
+					if dcut < minDcut || (dcut == minDcut && ((model.NodeID(index) <= minFrom && e.To <= minTo) || (model.NodeID(index) <= minTo && e.To <= minFrom))) {
+						minDcut = dcut
+						minFrom = model.NodeID(index)
+						minTo = e.To
+					}
 				}
 			}
 		}
 	}
-
 	s.minFrom = minFrom
 	s.minTo = minTo
 	s.minDcut = minDcut
@@ -167,20 +177,20 @@ func (s *Session) Dcut() (int, int, float64) {
 //extractParition Returns a map between the indexes of the nodes in the original graph and the indexes in the partition.
 //
 //The partition is generated based on the cut of the edge between `node` and `exclude` in the density connected tree.
-func (s *Session) extractParition(partition map[int]int, node, exclude int) map[int]int {
-	partition[node] = s.id
+func (s *Session) extractParition(partition map[model.NodeID]model.NodeID, node, exclude, nextNodeId model.NodeID) (map[model.NodeID]model.NodeID, model.NodeID) {
+	partition[node] = nextNodeId
 
-	for _, edge := range s.DCTEdges[node] {
+	for _, edge := range s.DCT[node].Neighbors {
 		if edge.To != exclude {
-			s.id++
-			partition = s.extractParition(partition, edge.To, node)
+			nextNodeId++
+			partition, nextNodeId = s.extractParition(partition, edge.To, node, nextNodeId)
 		}
 	}
-	return partition
+	return partition, nextNodeId
 }
 
 //CreatePartition Returns a partition of a graph based on the results of a Dcut.
-func (s *Session) CreatePartition(from, exclude int) []*model.Node {
+func (s *Session) CreatePartition(from, exclude model.NodeID) []*model.Node {
 	paritionSize, ok := s.ExploreResults[from][exclude]
 	//include from in the partition count
 	paritionSize += 1
@@ -191,8 +201,8 @@ func (s *Session) CreatePartition(from, exclude int) []*model.Node {
 
 	log.Printf("Partition cardinality: %d (explore graph from vertex %s and ignore edge to %s)", paritionSize, s.Graph[from].Value, s.Graph[exclude].Value)
 
-	partition1ID := make(map[int]int, paritionSize)
-	partition1ID = s.extractParition(partition1ID, from, exclude)
+	partition1ID := make(map[model.NodeID]model.NodeID, paritionSize)
+	partition1ID, _ = s.extractParition(partition1ID, from, exclude, 0)
 	partition1 := make([]*model.Node, paritionSize)
 	for node, idx := range partition1ID {
 		partition1[idx] = &model.Node{}
@@ -217,10 +227,7 @@ func (s *Session) CreatePartition(from, exclude int) []*model.Node {
 
 func (s *Session) SplitGraph() ([]*model.Node, []*model.Node) {
 	log.Println("Split Graph...")
-	s.id = 0
 	partition1 := s.CreatePartition(s.minFrom, s.minTo)
-	//Reset index of partition
-	s.id = 0
 	partition2 := s.CreatePartition(s.minTo, s.minFrom)
 	return partition1, partition2
 }

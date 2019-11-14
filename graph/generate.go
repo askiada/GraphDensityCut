@@ -2,7 +2,6 @@
 package graph
 
 import (
-	"log"
 	"math/rand"
 	"strconv"
 
@@ -28,7 +27,7 @@ type pair struct {
 //
 // - Add edges to the graph until we reach maxEdges
 func Generate(maxNodes int, maxEdges int) []*model.Node {
-	log.Printf("Generate a random graph with %d vertices and a maximum of %d edges", maxNodes, maxEdges)
+	//log.Printf("Generate a random graph with %d vertices and a maximum of %d edges", maxNodes, maxEdges)
 	//Number of combinations without replacement C(maxNode,2)
 	maxPairs := (maxNodes * (maxNodes - 1)) / 2
 	//Store the remaining edged we must create to have maxEdges and assuming we create at least one edge per node
@@ -39,7 +38,7 @@ func Generate(maxNodes int, maxEdges int) []*model.Node {
 	gra := make([]*model.Node, maxNodes)
 	//Build at least one edge for each node
 	for i, node := range s {
-		gra[node] = &model.Node{Value: strconv.Itoa(node + 1), Index: node}
+		gra[node] = &model.Node{Value: strconv.Itoa(node + 1), Index: model.NodeID(node)}
 		if i > 0 {
 			if _, ok := edgeMap[s[i-1]]; !ok {
 				edgeMap[s[i-1]] = make(map[int]float64)
@@ -48,8 +47,8 @@ func Generate(maxNodes int, maxEdges int) []*model.Node {
 				edgeMap[node] = make(map[int]float64)
 			}
 			w := rand.Float64()
-			gra[s[i-1]].Neighbors = append(gra[s[i-1]].Neighbors, &model.Edge{To: node, Weight: w})
-			gra[node].Neighbors = append(gra[node].Neighbors, &model.Edge{To: s[i-1], Weight: w})
+			gra[s[i-1]].Neighbors = append(gra[s[i-1]].Neighbors, &model.Edge{To: model.NodeID(node), Weight: w})
+			gra[node].Neighbors = append(gra[node].Neighbors, &model.Edge{To: model.NodeID(s[i-1]), Weight: w})
 			edgeMap[s[i-1]][node] = w
 			edgeMap[node][s[i-1]] = w
 		}
@@ -73,8 +72,8 @@ func Generate(maxNodes int, maxEdges int) []*model.Node {
 	for i := 0; i < nonConnectedEdges; i++ {
 		p := pairs[i]
 		w := rand.Float64()
-		gra[p.a].Neighbors = append(gra[p.a].Neighbors, &model.Edge{To: p.b, Weight: w})
-		gra[p.b].Neighbors = append(gra[p.b].Neighbors, &model.Edge{To: p.a, Weight: w})
+		gra[p.a].Neighbors = append(gra[p.a].Neighbors, &model.Edge{To: model.NodeID(p.b), Weight: w})
+		gra[p.b].Neighbors = append(gra[p.b].Neighbors, &model.Edge{To: model.NodeID(p.a), Weight: w})
 
 	}
 
