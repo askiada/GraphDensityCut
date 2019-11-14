@@ -88,8 +88,6 @@ func (s *Session) DensityConnectedTree(Graph []*model.Node, first *int) error {
 			}
 		}
 		p.Checked = true
-		p.Connect = q
-		p.Density = maxv
 		//After each iteration, we create a new edge in the Density Connected Tree.
 		//Check is true, because we want to only check the Dcut bi-partition for one of the edge.
 		s.DCTEdges[p.Index] = append(s.DCTEdges[p.Index], &model.Edge{To: q.Index, Weight: maxv, Check: true})

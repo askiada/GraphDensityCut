@@ -26,10 +26,6 @@ type Node struct {
 	Value string
 	//To ensure we only access the node one time when we build the density connected tree
 	Checked bool
-	//[Deprecated] Same role as checked
-	Connect *Node
-	//[Deprecated] Same Role as Edge.NodeSimilarity
-	Density float64
 	//List of neighbors
 	Neighbors []*Edge
 }
