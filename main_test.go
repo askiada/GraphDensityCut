@@ -57,8 +57,8 @@ func (suite *DcutTestSuite) TestGraphTwoNodesOneValidEdge() {
 	err := suite.sesh.DensityConnectedTree(G, nil)
 	assert.Nil(suite.T(), err)
 	minFrom, minTo, minDcut := suite.sesh.Dcut()
-	assert.Equal(suite.T(), 1, minFrom)
-	assert.Equal(suite.T(), 0, minTo)
+	assert.Equal(suite.T(), 0, minFrom)
+	assert.Equal(suite.T(), 1, minTo)
 	assert.Equal(suite.T(), float64(1), minDcut)
 }
 

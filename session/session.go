@@ -15,7 +15,7 @@ type Session struct {
 	//Store the nodes in the graph
 	Graph []*model.Node
 	//Representation of the density connected tree
-	DCTEdges map[int][]*model.Edge
+	DCTEdges [][]*model.Edge
 	//Store the cardinality of the partition when we explore the density connected tree from a starting node and excluding one edge
 	//map[FromNode][ExcludeNode]Cardinality of the partition
 	ExploreResults map[int]map[int]int
@@ -32,8 +32,8 @@ type Session struct {
 //DensityConnectedTree Create the density connected tree starting from a give node. If the first node is not provided, it randomly picks one.
 func (s *Session) DensityConnectedTree(Graph []*model.Node, first *int) error {
 	//s.DCTCount = make(map[int]int)
-	s.DCTEdges = make(map[int][]*model.Edge)
 	gSize := len(Graph)
+	s.DCTEdges = make([][]*model.Edge, gSize)
 	//T = null;
 	var T []*model.Node
 	//Set ∀v ∈ V as unchecked (v.checked = false); --> Zero value for boolean
