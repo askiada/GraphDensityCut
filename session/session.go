@@ -11,6 +11,44 @@ import (
 	"github.com/askiada/GraphDensityCut/model"
 )
 
+type Chain struct {
+	head *NodeChain
+	tail *NodeChain
+}
+
+type NodeChain struct {
+	Value *model.Node
+	Prev  *NodeChain
+	Next  *NodeChain
+}
+
+func (nc *NodeChain) Remove() *NodeChain {
+	var new *NodeChain
+	if nc.Prev != nil {
+		nc.Prev.Next = nc.Next
+		new = nc.Prev
+	} else {
+		if nc.Next != nil {
+			nc.Next.Prev = nil
+		}
+		new = nc.Next
+	}
+
+	nc = nil
+	return new
+}
+
+func (nc *NodeChain) PushFront(n *model.Node) *NodeChain {
+	new := &NodeChain{Value: n}
+	new.Prev = nc
+	new.Next = nc.Next
+	if nc.Next != nil {
+		nc.Next.Prev = new
+	}
+	nc.Next = new
+	return new
+}
+
 type Session struct {
 	//Store the nodes in the graph
 	Graph []*model.Node
@@ -47,20 +85,23 @@ func (s *Session) DensityConnectedTree(Graph []*model.Node, first *int) error {
 	//T.insert(u);
 	metric.Init(len(Graph))
 	T = append(T, Graph[*first])
+	tLength := 1
+
 	for {
 		//maxv = −1; p = null; q = null;
 		maxv := float64(-1)
 		var p, q *model.Node
 		//while T.size < V.size do
-		if len(T) >= gSize {
+		if tLength >= gSize {
 			break
 		}
-		//for j = 1 to Γ(u).size do
-		for i := range T {
+		N := len(T)
+		for i := 0; i < N; i++ {
 			u := T[i]
 			if len(u.Neighbors) == 0 {
 				return fmt.Errorf("Node with index %s does not have any neighbors", u)
 			}
+			var availableNeighbor bool
 			for _, vEdge := range u.Neighbors {
 				if int(vEdge.To) >= len(Graph) {
 					return fmt.Errorf("Node with index %d does not exist", vEdge.To)
@@ -80,7 +121,14 @@ func (s *Session) DensityConnectedTree(Graph []*model.Node, first *int) error {
 						p = v
 						q = u
 					}
+					availableNeighbor = true
 				}
+			}
+			if !availableNeighbor {
+				T[i] = T[len(T)-1]
+				T = T[:len(T)-1]
+				N = len(T)
+				i--
 			}
 		}
 		p.Checked = true
@@ -103,6 +151,7 @@ func (s *Session) DensityConnectedTree(Graph []*model.Node, first *int) error {
 		}
 		s.DCT[q.Index].Neighbors = append(s.DCT[q.Index].Neighbors, &model.Edge{To: p.Index, Weight: maxv})
 		T = append(T, p)
+		tLength++
 	}
 	s.Graph = Graph
 	s.T = T
@@ -157,7 +206,7 @@ func (s *Session) Dcut() (model.NodeID, model.NodeID, float64) {
 					//Count partiion should also include the node itself --> + 1
 					countParition := s.explore(model.NodeID(index), e.To) + 1
 					//Dcut(C1, C2) = d(C1, C2)/min(|C1|, |C2|)
-					dcut = e.Weight / float64(min(countParition, len(s.T)-countParition))
+					dcut = e.Weight / float64(min(countParition, len(s.Graph)-countParition))
 
 					if dcut < minDcut || (dcut == minDcut && ((model.NodeID(index) <= minFrom && e.To <= minTo) || (model.NodeID(index) <= minTo && e.To <= minFrom))) {
 						minDcut = dcut
